@@ -101,9 +101,9 @@ void drv_motor_move_reverse(uint8_t steps)
   for (i=0,step=0;i<steps;i++)
   {
     drv_motor_move_execute(motor_steps[step]);
-    step = (step + MOVE_CYCLE - 1) % MOVE_CYCLE;  
+    step = (step + MOVE_CYCLE - 1) % MOVE_CYCLE;
     HAL_Delay(5);
-  }  
+  }
   drv_motor_move_execute(MOVE_STEP_S);
 }
 

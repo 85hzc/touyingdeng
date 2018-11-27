@@ -268,7 +268,7 @@ static int8_t Drv_MOTOR_CMD_Handler(uint8_t code, uint16_t param)
 
 int8_t Drv_IR_CMD_Handler(uint8_t code, uint16_t key)
 {
-Drv_SERIAL_Log("Drv_IR_CMD_Handler 0x%x\r\n",key);
+  Drv_SERIAL_Log("Drv_IR_CMD_Handler 0x%x\r\n",key);
 
   if (code == CMD_OP_IR_CODE)
   {
@@ -446,7 +446,7 @@ static void handle_func_keys(uint16_t key)
       Drv_DLPC_CMD_Handler(CMD_OP_DLPC_SET_ORIENT, 0);
       break;
     case KEY_0:
-      Drv_EEPROM_CMD_Handler(CMD_OP_EEPROM_READ_EDID, 0);   
+      Drv_EEPROM_CMD_Handler(CMD_OP_EEPROM_READ_EDID, 0);
       break;
     case KEY_100:
       Drv_EEPROM_CMD_Handler(CMD_OP_EEPROM_WRITE_EDID, 0);
@@ -476,12 +476,7 @@ static void handle_func_MIkeys(uint16_t key)
   switch (key)
   {
     case REMOTE_MI_HOME:
-      Drv_MOTOR_CMD_Handler(CMD_OP_MOTOR_SET_FORWARD, 4);
-      break;
     case REMOTE_MI_MENU:
-      Drv_MOTOR_CMD_Handler(CMD_OP_MOTOR_SET_BACKWARD, 4);
-      break;
-
     case REMOTE_MI_POWER:
     case REMOTE_MI_UP:
     case REMOTE_MI_DOWN:

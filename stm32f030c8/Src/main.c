@@ -129,7 +129,7 @@ int main(void)
 //  Drv_AU_AMP_Init();  
 
   Drv_SERIAL_Log("starting...");
- 
+
   /* Infinite loop */
   while (1)
   {
