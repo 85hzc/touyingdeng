@@ -17,6 +17,7 @@
 /* Private variables ---------------------------------------------------------*/
 extern UART_HandleTypeDef huart1;
 extern CRC_HandleTypeDef hcrc;
+extern I2C_HandleTypeDef hi2c2;
 
 #define ARR_SIZE(a) (sizeof(a)/sizeof(a[0]))
 #define MULTI_CMD_MAX 20
@@ -45,7 +46,8 @@ int8_t Drv_EEPROM_CMD_Handler(uint8_t code, uint16_t param);
 int8_t Drv_DLPC_CMD_Handler(uint8_t code, uint16_t param);
 int8_t Drv_ACC_CMD_Handler(uint8_t code, uint16_t param);
 
-static void handle_power_key(void);
+//static void handle_power_key(void);
+void handle_power_key(void);
 static void handle_func_keys(uint16_t key);
 static void handle_func_MIkeys(uint16_t key);
 
@@ -66,6 +68,16 @@ static struct {
   uint8_t rd_id;
   uint8_t multi_cmd[MULTI_CMD_MAX][CMD_LEN_MAX];
 } rpt_cmd, act_cmd;
+
+
+/**
+  * @brief  The I2c deinit.
+  */
+void MX_I2C_DeInit()
+{
+  HAL_I2C_DeInit(&hi2c2);
+}
+
 
 /**
   * @brief  The drv_serial init.
@@ -362,7 +374,7 @@ int8_t Drv_DLPC_CMD_Handler(uint8_t code, uint16_t param)
       rc = drv_dlpc_proj_ctrl(param);
       break;
     case CMD_OP_DLPC_SET_CURRENT:
-      rc = drv_dlpc_set_current(param);
+      rc = drv_dlpc_set_current(0, param);
       break;
     case CMD_OP_DLPC_SET_INPUT:
       rc = drv_dlpc_set_input(param);
@@ -402,15 +414,25 @@ int8_t Drv_ACC_CMD_Handler(uint8_t code, uint16_t param)
 }
 
 /* ---------------------------------------------------- */
-static void handle_power_key(void)
+static uint32_t tickstart;
+//static void handle_power_key(void) 
+void handle_power_key(void)
 {
   drv_dlpc_proj_ctrl(2);
   if (DLPC_PROJ_STATUS())
   {
     drv_fan_on();
+    tickstart = HAL_GetTick();
+    while((HAL_GetTick() - tickstart) < 500)
+    {
+      ;
+    }
+    MX_I2C2_Init();
+    drv_dlpc_set_input(2);
   }
   else
   {
+    MX_I2C_DeInit();
     drv_fan_off(20000);
   }
 }
@@ -488,8 +510,10 @@ static void handle_func_MIkeys(uint16_t key)
     case REMOTE_MI_MINUS:
 #if 0
       memset(single_cmd, 0, sizeof(single_cmd));
-      single_cmd[0] = CMD_HEADER_RPT;
-      single_cmd[1] = 0xff&key;
+      single_cmd[0] = CMD_HEADER_REQ;
+      single_cmd[1] = MSG_TYPE_IR;
+      single_cmd[2] = 0xff&key;
+      single_cmd[3] = 0xff&(key>>8);
       Drv_SERIAL_Write(single_cmd, HAL_MAX_DELAY);
 #endif
       break;

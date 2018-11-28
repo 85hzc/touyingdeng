@@ -50,9 +50,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 static void Drv_IR_MI_Decode(uint32_t cap, uint32_t max)
 {
   static uint8_t IR_index = 0;
+  static uint8_t IR_repeat = 0;
   static uint16_t IR_code = 0;
   static uint32_t IR_captured = 0;
-  static uint32_t IR_data = 0;
+  static uint32_t IR_data = 0, IR_data_repeat = 0;
   uint32_t time_gap = 0;
 
   if (!Drv_IR_NEC_Decode(cap, max)) {
@@ -63,7 +64,10 @@ static void Drv_IR_MI_Decode(uint32_t cap, uint32_t max)
   time_gap = TIME_GAP(IR_captured,cap,max); 
 
   //if ((time_gap >= 125 && time_gap <= 140)){
-  if ((time_gap >= 100)){
+  if (time_gap >= 500) {
+    IR_data_repeat = 0;
+  }
+  else if (time_gap >= 100){
     IR_index = 0;
 
     IR_data16L = 0;
@@ -82,54 +86,63 @@ static void Drv_IR_MI_Decode(uint32_t cap, uint32_t max)
     IR_index++;
   }
 
-  //Drv_SERIAL_Log("%d\r", time_gap);
   if (IR_index >= 11){
     IR_data = IR_data16L | IR_data16H<<16;
-
-    //Drv_SERIAL_Log("[0x%x]\r\n",IR_data);
     IR_index = 0;
-    IR_code  = 0;
-    switch(IR_data){
-        case MI_POWER:
-            IR_code = REMOTE_MI_POWER;
-            break;
-        case MI_UP:
-            IR_code = REMOTE_MI_UP;
-            break;
-        case MI_DOWN:
-            IR_code = REMOTE_MI_DOWN;
-            break;
-        case MI_LEFT:
-            IR_code = REMOTE_MI_LEFT;
-            break;
-        case MI_RIGHT:
-            IR_code = REMOTE_MI_RIGHT;
-            break;
-        case MI_VOLPLUS:
-            IR_code = REMOTE_MI_PLUS;
-            break;
-        case MI_VOLMINUS:
-            IR_code = REMOTE_MI_MINUS;
-            break;
-        case MI_BACK:
-            IR_code = REMOTE_MI_BACK;
-            break;
-        case MI_HOME:
-            IR_code = REMOTE_MI_HOME;//focus+
-            break;
-        case MI_MENU:
-            IR_code = REMOTE_MI_MENU;//focus-
-            break;
-        case MI_ENTER:
-            IR_code = REMOTE_MI_OK;
-            break;
-        default:
-            Drv_SERIAL_Log("invalid IR RX code.\r\n");
-            break;
-    }
+    
+    if (IR_data_repeat != IR_data) {
+        IR_repeat = 0;
+        IR_code  = 0;
+        IR_data_repeat = IR_data;
 
-    //Drv_SERIAL_Rpt(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
-    Drv_SERIAL_Act(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
+        switch(IR_data){
+            case MI_POWER:
+                IR_code = REMOTE_MI_POWER;
+                break;
+            case MI_UP:
+                IR_code = REMOTE_MI_UP;
+                break;
+            case MI_DOWN:
+                IR_code = REMOTE_MI_DOWN;
+                break;
+            case MI_LEFT:
+                IR_code = REMOTE_MI_LEFT;
+                break;
+            case MI_RIGHT:
+                IR_code = REMOTE_MI_RIGHT;
+                break;
+            case MI_VOLPLUS:
+                IR_code = REMOTE_MI_PLUS;
+                break;
+            case MI_VOLMINUS:
+                IR_code = REMOTE_MI_MINUS;
+                break;
+            case MI_BACK:
+                IR_code = REMOTE_MI_BACK;
+                break;
+            case MI_HOME:
+                IR_code = REMOTE_MI_HOME;//focus+
+                break;
+            case MI_MENU:
+                IR_code = REMOTE_MI_MENU;//focus-
+                break;
+            case MI_ENTER:
+                IR_code = REMOTE_MI_OK;
+                break;
+            default:
+                //Drv_SERIAL_Log("invalid IR RX code.\r\n");
+                break;
+        }
+    } else {
+        IR_repeat++;
+    }
+    
+    //Drv_SERIAL_Log("%08x,%d\r\n", IR_data, IR_repeat);
+    if (IR_repeat == 3) {
+      //Drv_SERIAL_Rpt(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
+      IR_repeat = 0;
+      Drv_SERIAL_Act(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
+    }
   }
   IR_captured = cap;
 }
@@ -177,9 +190,11 @@ static int Drv_IR_NEC_Decode(uint32_t cap, uint32_t max)
       IR_code = (IR_ptr[0]|(IR_ptr[2]<<8));
       IR_valid = 1;
       IR_index = 0;
-      Drv_SERIAL_Log("Drv_IR_NEC_Decode[0x%x]\r\n",IR_code);
-      Drv_SERIAL_Rpt(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
-      Drv_SERIAL_Act(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
+      //Drv_SERIAL_Log("Drv_IR_NEC_Decode[0x%x]\r\n",IR_code);
+      if (IR_code) {
+        Drv_SERIAL_Rpt(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
+        Drv_SERIAL_Act(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
+      }
       return 0;
     }
   }
@@ -191,7 +206,7 @@ static int Drv_IR_NEC_Decode(uint32_t cap, uint32_t max)
       {
         Drv_SERIAL_Rpt(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
         Drv_SERIAL_Act(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
-        Drv_SERIAL_Log("Drv_IR_NEC_Decode repeat[0x%x]\r\n",IR_code);
+        //Drv_SERIAL_Log("Drv_IR_NEC_Decode repeat[0x%x]\r\n",IR_code);
         return 0;
       }
     }

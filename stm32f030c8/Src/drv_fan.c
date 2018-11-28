@@ -52,7 +52,7 @@ void drv_fan_on(void)
 {
   turn_off = 0;
 
-  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2, (uint32_t)80);
+  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2, (uint32_t)100);
 }
 
 void drv_fan_off(uint32_t delay)

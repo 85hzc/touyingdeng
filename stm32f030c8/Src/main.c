@@ -58,6 +58,8 @@ TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart1;
 
+static uint32_t tickstart;
+
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
@@ -67,7 +69,8 @@ UART_HandleTypeDef huart1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_I2C2_Init(void);
+//static void MX_I2C2_Init(void);
+void MX_I2C2_Init(void);
 static void MX_CRC_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_ADC_Init(void);
@@ -101,7 +104,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
-  MX_I2C2_Init();
+  //MX_I2C2_Init();
   MX_CRC_Init();
   MX_TIM1_Init();
   MX_TIM3_Init();
@@ -115,6 +118,17 @@ int main(void)
   Drv_IR_Init();
   /* Initialize LED state */
   Drv_LED_Init();
+  
+  Drv_SERIAL_Log("start dlpc");
+  Start_dlpc();
+  tickstart = HAL_GetTick();
+  while((HAL_GetTick() - tickstart) < 500)
+  {
+    ;
+  }
+  MX_I2C2_Init();
+  drv_dlpc_set_input(2);
+
   /* Initialize DLPC state */
   Drv_DLPC_Init();
   /* Initialize HDMI Rx state */
@@ -263,7 +277,8 @@ static void MX_CRC_Init(void)
 }
 
 /* I2C2 init function */
-static void MX_I2C2_Init(void)
+//static void MX_I2C2_Init(void)
+void MX_I2C2_Init(void)
 {
 
   hi2c2.Instance = I2C2;

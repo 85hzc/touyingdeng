@@ -27,7 +27,7 @@
 void Drv_DLPC_Init(void);
 void Drv_DLPC_CMD_Proc(void);
 
-int8_t drv_dlpc_set_current(uint16_t param);
+int8_t drv_dlpc_set_current(uint8_t devid, uint16_t param);
 int8_t drv_dlpc_set_keystone(uint8_t d);
 int8_t drv_dlpc_reset_keystone(void);
 int8_t drv_dlpc_proj_ctrl(uint16_t param);

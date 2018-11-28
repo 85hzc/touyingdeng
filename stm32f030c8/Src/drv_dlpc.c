@@ -78,7 +78,7 @@ void Drv_DLPC_CMD_Proc(void)
   
 }
 
-int8_t drv_dlpc_set_current(uint16_t param)
+int8_t drv_dlpc_set_current(uint8_t devId, uint16_t param)
 {
   uint8_t data[6];
   uint16_t r,g,b;
@@ -87,22 +87,28 @@ int8_t drv_dlpc_set_current(uint16_t param)
   r = data[0]|(data[1]<<8);
   g = data[2]|(data[3]<<8);
   b = data[4]|(data[5]<<8);
-  if (0==param)
-  {
-    r-=10;
-    g-=10;
-    b-=10;
-  }
-  else
-  {
-    r+=10;
-    g+=10;
-    b+=10;
-  }
 
-  if (r>500) r=500;
-  if (g>500) g=500;
-  if (b>500) b=500;
+  if(devId == 1) {
+
+    r = 900;
+  } else {
+    if (0==param)
+    {
+      r-=10;
+      g-=10;
+      b-=10;
+    }
+    else
+    {
+      r+=10;
+      g+=10;
+      b+=10;
+    }
+
+    if (r>500) r=500;
+    if (g>500) g=500;
+    if (b>500) b=500;
+  }
 
   data[0]=r&0x00ff;
   data[1]=(r&0xff00)>>8;
@@ -110,7 +116,7 @@ int8_t drv_dlpc_set_current(uint16_t param)
   data[3]=(g&0xff00)>>8;
   data[4]=b&0x00ff;
   data[5]=(b&0xff00)>>8;
-  
+
   DLPC_WRITE(CMD_LED_CURRENT_WRITE, data, 6);
 
   return (int8_t)HAL_OK;
@@ -195,18 +201,18 @@ int8_t drv_dlpc_set_input(uint16_t param)
 
   switch (source)
   {
-  case 0x00:// External Video Port
-    input_w = INPUT_IMAGE_W;
-    input_h = INPUT_IMAGE_H;
-    crop_w = INPUT_CROP_W;
-    crop_h = INPUT_CROP_H;
-    break;
-  case 0x01:// Test Pattern Generator
-    input_w = 854;
-    input_h = 480;
-    crop_w = 854;
-    crop_h = 480;
-    break;
+    case 0x00:// External Video Port
+      input_w = INPUT_IMAGE_W;
+      input_h = INPUT_IMAGE_H;
+      crop_w = INPUT_CROP_W;
+      crop_h = INPUT_CROP_H;
+      break;
+    case 0x01:// Test Pattern Generator
+      input_w = 854;
+      input_h = 480;
+      crop_w = 854;
+      crop_h = 480;
+      break;
   }
 
   // Curtain enabled
@@ -214,16 +220,16 @@ int8_t drv_dlpc_set_input(uint16_t param)
   re=DLPC_WRITE(CMD_IMAGE_CURTAIN_WRITE, data, 1); 
   // Image freeze enabled
   data[0] = 0x01;
-  re|=DLPC_WRITE(CMD_IMAGE_FREEZE_WRITE, data, 1);     
+  re|=DLPC_WRITE(CMD_IMAGE_FREEZE_WRITE, data, 1);
   // Input Image format
   data[0] = 0x43;
-  re|=DLPC_WRITE(CMD_INPUT_FORMAT_WRITE, data, 1); 
+  re|=DLPC_WRITE(CMD_INPUT_FORMAT_WRITE, data, 1);
   // Input Image size
   data[0] = (input_w&0x00FF);
   data[1] = (input_w&0xFF00)>>8;
   data[2] = (input_h&0x00FF);
   data[3] = (input_h&0xFF00)>>8;
-  re|=DLPC_WRITE(CMD_INPUT_IMAGE_WRITE, data, 4); 
+  re|=DLPC_WRITE(CMD_INPUT_IMAGE_WRITE, data, 4);
   // Image Crop (size == Input Image size)
   data[0] = 0;
   data[1] = 0;
@@ -233,26 +239,38 @@ int8_t drv_dlpc_set_input(uint16_t param)
   data[5] = (crop_w&0xFF00)>>8;
   data[6] = (crop_h&0x00FF);
   data[7] = (crop_h&0xFF00)>>8;
-  re|=DLPC_WRITE(CMD_IMAGE_CROP_WRITE, data, 8); 
+  re|=DLPC_WRITE(CMD_IMAGE_CROP_WRITE, data, 8);
   // DMD Display Size
   data[0] = 0;
   data[1] = 0;
   data[2] = 0;
   data[3] = 0;
+  #if(1)//output_pix720)
+  data[4] = (1280&0x00FF);
+  data[5] = (1280&0xFF00)>>8;
+  data[6] = (720&0x00FF);
+  data[7] = (720&0xFF00)>>8;
+  #else
   data[4] = (854&0x00FF);
   data[5] = (854&0xFF00)>>8;
   data[6] = (480&0x00FF);
   data[7] = (480&0xFF00)>>8;
-  re|=DLPC_WRITE(CMD_DISPLAY_SIZE_WRITE, data, 8); 
+  #endif
+  re|=DLPC_WRITE(CMD_DISPLAY_SIZE_WRITE, data, 8);
   // Set to External Input
   data[0] = source;
-  re|=DLPC_WRITE(CMD_INPUT_SOURCE_WRITE, data, 1); 
+  re|=DLPC_WRITE(CMD_INPUT_SOURCE_WRITE, data, 1);
   // Unfreeeze
   data[0] = 0x00;
-  re|=DLPC_WRITE(CMD_IMAGE_FREEZE_WRITE, data, 1); 
+  re|=DLPC_WRITE(CMD_IMAGE_FREEZE_WRITE, data, 1);
   // Curtain disabled
   data[0] = 0x00;
-  re|=DLPC_WRITE(CMD_IMAGE_CURTAIN_WRITE, data, 1); 
+  re|=DLPC_WRITE(CMD_IMAGE_CURTAIN_WRITE, data, 1);
+  // Orient
+  data[0] = 0x04;
+  re|=DLPC_WRITE(CMD_IMAGE_ORIENT_WRITE, data, 1);
+  // Set Current
+  //drv_dlpc_set_current(1, 0);
 
   return 0;
 }
@@ -311,16 +329,16 @@ int8_t drv_dlpc_switch_test_pattern(void)
       data[5]=0x00;
       count=6;
       break;
-    case 0x07:  
+    case 0x07:
       data[1]=0x70;
       data[2]=0x10;
-      data[3]=0x00;      
+      data[3]=0x00;
       data[4]=0x0c;
       data[5]=0x00;
       data[6]=0x00;
       count=7;
       break;
-    case 0x08:      
+    case 0x08:
       count=1;
       break;
     }
@@ -353,5 +371,11 @@ int8_t drv_dlpc_sw(void)
     Drv_SERIAL_Log("RED 0x%02X, 0x%02X; Green 0x%02X, 0x%02X; Blue 0x%02X, 0x%02X", data[0],data[1],data[2],data[3],data[4],data[5]);
   
   return 0;
+}
+
+void Start_dlpc()
+{
+    drv_fan_on();
+    drv_dlpc_proj_ctrl(2);
 }
 

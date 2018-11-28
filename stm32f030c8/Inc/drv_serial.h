@@ -89,12 +89,19 @@ typedef enum
   CMD_OP_GYRO_CODE                          = 0x00,
 }gyro_op_t;
 
+typedef enum
+{
+  MSG_TYPE_IR                               = 0x00,
+  MSG_TYPE_OTHER
+}uart_msg_type_t;
+
 /* Private function prototypes -----------------------------------------------*/
 void Drv_SERIAL_Init(void);
 void Drv_SERIAL_Proc(void);
 void Drv_SERIAL_Log(const char *format, ...);
 uint8_t Drv_SERIAL_Rpt(uint8_t code, uint16_t param);
 uint8_t Drv_SERIAL_Act(uint8_t code, uint16_t param);
+void handle_power_key(void);
 
 #endif
 
