@@ -92,7 +92,7 @@ void Drv_SERIAL_Init(void)
   * @brief  The drv_serial init.
   */
 void Drv_SERIAL_Proc(void)
-{  
+{
   /* 1. read the uart buffer... */
   if (HAL_OK == Drv_SERIAL_Read(single_cmd, 0))
   {
@@ -280,7 +280,7 @@ static int8_t Drv_MOTOR_CMD_Handler(uint8_t code, uint16_t param)
 
 int8_t Drv_IR_CMD_Handler(uint8_t code, uint16_t key)
 {
-  Drv_SERIAL_Log("Drv_IR_CMD_Handler 0x%x\r\n",key);
+  //Drv_SERIAL_Log("Drv_IR_CMD_Handler 0x%x\r\n",key);
 
   if (code == CMD_OP_IR_CODE)
   {
@@ -433,7 +433,7 @@ void handle_power_key(void)
   else
   {
     MX_I2C_DeInit();
-    drv_fan_off(20000);
+    drv_fan_off(5000);
   }
 }
 static void handle_func_keys(uint16_t key)
@@ -498,7 +498,11 @@ static void handle_func_MIkeys(uint16_t key)
   switch (key)
   {
     case REMOTE_MI_HOME:
+        drv_dlpc_set_keystone(0);
+        break;
     case REMOTE_MI_MENU:
+        drv_dlpc_set_keystone(1);
+        break;
     case REMOTE_MI_POWER:
     case REMOTE_MI_UP:
     case REMOTE_MI_DOWN:

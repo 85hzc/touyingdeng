@@ -139,8 +139,8 @@ static void Drv_IR_MI_Decode(uint32_t cap, uint32_t max)
     
     //Drv_SERIAL_Log("%08x,%d\r\n", IR_data, IR_repeat);
     if (IR_repeat == 3) {
-      //Drv_SERIAL_Rpt(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
       IR_repeat = 0;
+      Drv_SERIAL_Rpt(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
       Drv_SERIAL_Act(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
     }
   }

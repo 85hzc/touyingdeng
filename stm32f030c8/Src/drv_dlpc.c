@@ -369,7 +369,10 @@ int8_t drv_dlpc_sw(void)
 
   if (HAL_OK == DLPC_READ(0x55, data, 6))
     Drv_SERIAL_Log("RED 0x%02X, 0x%02X; Green 0x%02X, 0x%02X; Blue 0x%02X, 0x%02X", data[0],data[1],data[2],data[3],data[4],data[5]);
-  
+
+  if (HAL_OK == DLPC_READ(0xD5, data, 4))
+    Drv_SERIAL_Log("0xD5:0x%x 0x%x 0x%x 0x%x \r\n", data[0], data[1], data[2], data[3]);
+
   return 0;
 }
 
