@@ -17,10 +17,7 @@
 /* Private variables ---------------------------------------------------------*/
 extern TIM_HandleTypeDef htim3;
 
-static uint8_t IR_index = 0;
-static uint16_t IR_code = 0;
-static uint32_t IR_captured = 0;
-static uint32_t IR_data;
+
 static uint16_t IR_data16L, IR_data16H;
 
 
@@ -49,12 +46,12 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 
 static void Drv_IR_MI_Decode(uint32_t cap, uint32_t max)
 {
-  static uint8_t IR_index = 0;
-  static uint8_t IR_repeat = 0;
+  uint8_t         firstFlag = 0;
+  uint32_t        time_gap = 0;
+  static uint8_t  IR_index = 0, IR_repeat = 0;
   static uint16_t IR_code = 0;
   static uint32_t IR_captured = 0;
   static uint32_t IR_data = 0, IR_data_repeat = 0;
-  uint32_t time_gap = 0;
 
   if (!Drv_IR_NEC_Decode(cap, max)) {
     //nec IR signal handler,escape MI
@@ -133,13 +130,15 @@ static void Drv_IR_MI_Decode(uint32_t cap, uint32_t max)
                 //Drv_SERIAL_Log("invalid IR RX code.\r\n");
                 break;
         }
+        firstFlag = 1;
     } else {
         IR_repeat++;
     }
-    
+
     //Drv_SERIAL_Log("%08x,%d\r\n", IR_data, IR_repeat);
-    if (IR_repeat == 3) {
+    if ((IR_repeat == 3 || firstFlag) && IR_code) {
       IR_repeat = 0;
+      firstFlag = 0;
       Drv_SERIAL_Rpt(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
       Drv_SERIAL_Act(SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE), IR_code);
     }
@@ -149,6 +148,7 @@ static void Drv_IR_MI_Decode(uint32_t cap, uint32_t max)
 
 static int Drv_IR_NEC_Decode(uint32_t cap, uint32_t max)
 {
+  uint32_t time_gap = 0;
   static uint8_t IR_index = 0;
   static uint8_t IR_repeat = 0;
   static uint8_t IR_valid = 0;
@@ -156,7 +156,6 @@ static int Drv_IR_NEC_Decode(uint32_t cap, uint32_t max)
   static uint32_t IR_captured = 0;
   static uint32_t IR_data = 0;
   static uint32_t IR_start = 0;
-  uint32_t time_gap = 0;
   
   time_gap = TIME_GAP(IR_captured,cap,max); 
   

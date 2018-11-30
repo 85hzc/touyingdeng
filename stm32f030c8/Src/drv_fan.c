@@ -9,6 +9,7 @@
  */
 
 /* Includes ------------------------------------------------------------------*/
+#include "drv.h"
 #include "drv_fan.h"
 
 /* Private variables ---------------------------------------------------------*/
@@ -52,7 +53,7 @@ void drv_fan_on(void)
 {
   turn_off = 0;
 
-  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2, (uint32_t)100);
+  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2, isP51?100:80);
 }
 
 void drv_fan_off(uint32_t delay)

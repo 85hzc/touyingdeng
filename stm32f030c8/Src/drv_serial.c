@@ -19,6 +19,8 @@ extern UART_HandleTypeDef huart1;
 extern CRC_HandleTypeDef hcrc;
 extern I2C_HandleTypeDef hi2c2;
 
+static uint32_t tickstart;
+
 #define ARR_SIZE(a) (sizeof(a)/sizeof(a[0]))
 #define MULTI_CMD_MAX 20
 
@@ -109,18 +111,28 @@ void Drv_SERIAL_Proc(void)
   /* 2. read the action buffer... */
   if (HAL_OK == Drv_SERIAL_Read_Act(single_cmd))
   {
+    //Drv_SERIAL_Log("Act location:0x%x 0x%x 0x%x 0x%x\r\n",
+    //        single_cmd[0],single_cmd[1],single_cmd[2],single_cmd[3]);
     (void)Drv_CMD_Handler(single_cmd);
   }
   
   /* 3. read the report buffer... */
-  if (HAL_OK == Drv_SERIAL_Read_Rpt(single_cmd))
+  if (HAL_OK == Drv_SERIAL_Read_Rpt(single_cmd) &&
+        single_cmd[2] != 0x01 && 
+        single_cmd[2] != 0x07 && 
+        single_cmd[2] != 0x09)
   {
+    //Drv_SERIAL_Log("Tx Raspberry:0x%x 0x%x 0x%x 0x%x\r\n",
+    //    single_cmd[0],single_cmd[1],single_cmd[2],single_cmd[3]);
     (void)Drv_SERIAL_Write(single_cmd, HAL_MAX_DELAY);
   }
 }
 
 void Drv_SERIAL_Log(const char *format, ...)
 {
+#if Raspberry
+  return;
+#else
 #define MAX_LOG_LEN 64
   static char log[MAX_LOG_LEN];
   char log_len;
@@ -136,6 +148,7 @@ void Drv_SERIAL_Log(const char *format, ...)
     log[log_len++] = '\n';
     HAL_UART_Transmit(&huart1, (uint8_t*)log, log_len, HAL_MAX_DELAY);
   }
+#endif
 }
 
 uint8_t Drv_SERIAL_Act(uint8_t code, uint16_t param)
@@ -268,10 +281,10 @@ static int8_t Drv_MOTOR_CMD_Handler(uint8_t code, uint16_t param)
   switch (code)
   {
   case CMD_OP_MOTOR_SET_FORWARD:
-    drv_motor_move_forward(4);
+    drv_motor_move_forward(2);
     break;
   case CMD_OP_MOTOR_SET_BACKWARD:
-    drv_motor_move_reverse(4);
+    drv_motor_move_reverse(2);
     break;
   }
   
@@ -281,19 +294,41 @@ static int8_t Drv_MOTOR_CMD_Handler(uint8_t code, uint16_t param)
 int8_t Drv_IR_CMD_Handler(uint8_t code, uint16_t key)
 {
   //Drv_SERIAL_Log("Drv_IR_CMD_Handler 0x%x\r\n",key);
+  static uint8_t  flag = 0;
+  static uint16_t lastKey = 0;
 
   if (code == CMD_OP_IR_CODE)
   {
 
     if(key>>8 == 0xff) {// MI controler
-    
-      switch (key)
-      {
-        case REMOTE_MI_POWER:
-          handle_power_key();
-          break;
-        default:
-          handle_func_MIkeys(key);
+
+      if(lastKey != key) {
+
+        lastKey = key;
+        flag = 1;
+        tickstart = HAL_GetTick();
+      } else {
+
+        if((HAL_GetTick() - tickstart) > ((REMOTE_MI_POWER == key) ? 2000 : 300)) //repeat press
+        {
+          tickstart = HAL_GetTick();
+          flag = 1;
+        } else {
+            //Drv_SERIAL_Log("repeat escap\r\n");
+        }
+      }
+
+      if(flag) {
+        //Drv_SERIAL_Log("TX key:%x\r\n",key);
+        flag = 0;
+        switch (key)
+        {
+          case REMOTE_MI_POWER:
+            handle_power_key();
+            break;
+          default:
+            handle_func_MIkeys(key);
+        }
       }
     } else {//NEC controler
     
@@ -422,11 +457,7 @@ void handle_power_key(void)
   if (DLPC_PROJ_STATUS())
   {
     drv_fan_on();
-    tickstart = HAL_GetTick();
-    while((HAL_GetTick() - tickstart) < 500)
-    {
-      ;
-    }
+    HAL_Delay(500);
     MX_I2C2_Init();
     drv_dlpc_set_input(2);
   }

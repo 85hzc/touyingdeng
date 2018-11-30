@@ -88,9 +88,10 @@ int8_t drv_dlpc_set_current(uint8_t devId, uint16_t param)
   g = data[2]|(data[3]<<8);
   b = data[4]|(data[5]<<8);
 
-  if(devId == 1) {
-
-    r = 900;
+  if(devId == 1) {//small light machine
+    r = 370;
+    g = 370;
+    b = 370;
   } else {
     if (0==param)
     {
@@ -140,6 +141,7 @@ int8_t drv_dlpc_set_orient(void)
 
   DLPC_READ(CMD_IMAGE_ORIENT_READ, &data, 1);
   data = ((data+0x02)&0x06)+(data&~0x06);
+  //Drv_SERIAL_Log("orient:%x\r\n",data);
   DLPC_WRITE(0x14, &data, 1);
 
   return (int8_t)HAL_OK;
@@ -181,12 +183,39 @@ int8_t drv_dlpc_set_keystone(uint8_t d)
   data[1] = data[1]+(d?1:-1);
   DLPC_WRITE(0xBB, data, 2);
 
+  drv_eeprom_write_keystone(data);
+
+  return 0;
+}
+
+int8_t drv_dlpc_init_keystone(uint8_t *d)
+{
+  uint8_t data[5];
+  
+  DLPC_READ(0x89, data, 5);  
+  if ((data[0]&0x01)==0x00)
+  {
+    data[0] = 0x01;
+    data[1] = 0x33;
+    data[2] = 0x01;
+    data[3] = 0x00;
+    data[4] = 0x01;
+    DLPC_WRITE(0x88, data, 5);
+    data[0] = 0x00;
+    data[1] = 0x00;
+    DLPC_WRITE(0xBB, data, 2);
+  }
+
+  data[0] = d[0];
+  data[1] = d[1];
+  DLPC_WRITE(0xBB, data, 2);
+
   return 0;
 }
 
 int8_t drv_dlpc_set_input(uint16_t param)
 {  
-  uint8_t data[8], source, re;
+  uint8_t data[8], keystone[2],source, re;
   uint16_t input_w,input_h,crop_w,crop_h;
 
   if(param>=2)
@@ -245,17 +274,24 @@ int8_t drv_dlpc_set_input(uint16_t param)
   data[1] = 0;
   data[2] = 0;
   data[3] = 0;
-  #if(1)//output_pix720)
+#if 0
+  data[4] = (crop_w&0x00FF);
+  data[5] = (crop_w&0xFF00)>>8;
+  data[6] = (crop_h&0x00FF);
+  data[7] = (crop_h&0xFF00)>>8;
+#else
+#if(isP51)
   data[4] = (1280&0x00FF);
   data[5] = (1280&0xFF00)>>8;
   data[6] = (720&0x00FF);
   data[7] = (720&0xFF00)>>8;
-  #else
+#else
   data[4] = (854&0x00FF);
   data[5] = (854&0xFF00)>>8;
   data[6] = (480&0x00FF);
   data[7] = (480&0xFF00)>>8;
-  #endif
+#endif
+#endif
   re|=DLPC_WRITE(CMD_DISPLAY_SIZE_WRITE, data, 8);
   // Set to External Input
   data[0] = source;
@@ -267,10 +303,18 @@ int8_t drv_dlpc_set_input(uint16_t param)
   data[0] = 0x00;
   re|=DLPC_WRITE(CMD_IMAGE_CURTAIN_WRITE, data, 1);
   // Orient
-  data[0] = 0x04;
+  data[0] = isP51?4:6;
   re|=DLPC_WRITE(CMD_IMAGE_ORIENT_WRITE, data, 1);
-  // Set Current
-  //drv_dlpc_set_current(1, 0);
+
+  // Set Current for small Light machine
+  if(!isP51) {
+    drv_dlpc_set_current(1, 0);
+  }
+
+  // Set keystone
+  drv_eeprom_read_keystone(keystone);
+  //Drv_SERIAL_Log("keystone:%x %x\r\n", keystone[0], keystone[1]);
+  drv_dlpc_init_keystone(keystone);
 
   return 0;
 }
@@ -372,6 +416,9 @@ int8_t drv_dlpc_sw(void)
 
   if (HAL_OK == DLPC_READ(0xD5, data, 4))
     Drv_SERIAL_Log("0xD5:0x%x 0x%x 0x%x 0x%x \r\n", data[0], data[1], data[2], data[3]);
+
+  if (HAL_OK == DLPC_READ(0x15, data, 1))
+    Drv_SERIAL_Log("0x15:0x%x\r\n", data[0]);
 
   return 0;
 }

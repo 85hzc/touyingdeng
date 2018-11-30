@@ -121,11 +121,7 @@ int main(void)
   
   Drv_SERIAL_Log("start dlpc");
   Start_dlpc();
-  tickstart = HAL_GetTick();
-  while((HAL_GetTick() - tickstart) < 500)
-  {
-    ;
-  }
+  HAL_Delay(500);
   MX_I2C2_Init();
   drv_dlpc_set_input(2);
 
@@ -261,8 +257,8 @@ static void MX_CRC_Init(void)
   hcrc.Instance = CRC;
   hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
   hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
-  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_WORD;
-  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_ENABLE;
+  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
+  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
   hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
   if (HAL_CRC_Init(&hcrc) != HAL_OK)
   {

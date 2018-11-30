@@ -15,6 +15,9 @@
 #include "stm32f0xx_hal.h"
 
 /* Type prototypes -----------------------------------------------------------*/
+typedef struct {
+  uint8_t keystone[2];
+}e2prome_param_s;
 
 /* Private variables ---------------------------------------------------------*/
 
