@@ -14,6 +14,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 extern TIM_HandleTypeDef htim1;
+extern e2prom_param_s g_e2promParam;
+
 static uint32_t tickstart;
 static uint32_t tickexpire;
 static uint8_t turn_off = 0;
@@ -53,7 +55,13 @@ void drv_fan_on(void)
 {
   turn_off = 0;
 
-  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2, isP51?100:80);
+  if(getLightType() == SMALL_LIGHT) {
+
+    __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2, 80);
+  } else {
+
+    __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2, 100);
+  }
 }
 
 void drv_fan_off(uint32_t delay)

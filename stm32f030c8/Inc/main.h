@@ -91,6 +91,12 @@
 void _Error_Handler(char *, int);
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
+
+typedef enum {
+  SMALL_LIGHT = 0,
+  BIG_LIGHT,
+}LIGTH_TYPE_E;
+
 #ifdef __cplusplus
 }
 #endif

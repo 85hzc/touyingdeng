@@ -60,6 +60,8 @@ UART_HandleTypeDef huart1;
 
 static uint32_t tickstart;
 
+e2prom_param_s g_e2promParam;
+
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
@@ -75,6 +77,7 @@ static void MX_CRC_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_ADC_Init(void);
 static void MX_TIM1_Init(void);
+static void Global_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
                                 
@@ -109,7 +112,7 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM3_Init();
   MX_ADC_Init();
-  
+
   /* Initialize FAN state */
   Drv_FAN_Init();
   /* Initialize SERIAL state */
@@ -123,7 +126,10 @@ int main(void)
   Start_dlpc();
   HAL_Delay(500);
   MX_I2C2_Init();
+  /*Initialize global paramters*/
+  Global_Init();
   drv_dlpc_set_input(2);
+  drv_fan_on();
 
   /* Initialize DLPC state */
   Drv_DLPC_Init();
@@ -153,6 +159,27 @@ int main(void)
     //Drv_ACC_Proc();
   }
 
+}
+
+LIGTH_TYPE_E getLightType(void)
+{
+    if(g_e2promParam.devtype[0] == 0xea && 
+       g_e2promParam.devtype[1] == 0x01) {
+
+       return SMALL_LIGHT;
+    } else {
+
+       return BIG_LIGHT;
+    }
+}
+
+static void Global_Init(void)
+{
+    memset(&g_e2promParam, 0, sizeof(e2prom_param_s));
+
+    drv_eeprom_read_params(&g_e2promParam);
+    Drv_SERIAL_Log("keystone:%x %x, devtype:%x %x\r\n", g_e2promParam.keystone[0], g_e2promParam.keystone[1],
+      g_e2promParam.devtype[0],g_e2promParam.devtype[1]);
 }
 
 /**

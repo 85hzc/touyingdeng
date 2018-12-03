@@ -15,7 +15,6 @@
 #include "stm32f0xx_hal.h"
 
 #define Raspberry       0
-#define isP51           0//big cast
 //#define CMD_LEN_HEADER  1
 //#define CMD_LEN_CODE    1
 //#define CMD_LEN_PARAM   2

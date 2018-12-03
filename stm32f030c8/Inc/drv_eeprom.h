@@ -17,7 +17,8 @@
 /* Type prototypes -----------------------------------------------------------*/
 typedef struct {
   uint8_t keystone[2];
-}e2prome_param_s;
+  uint8_t devtype[2];
+}e2prom_param_s;
 
 /* Private variables ---------------------------------------------------------*/
 

@@ -118,13 +118,13 @@ uint8_t drv_eeprom_read_edid(void)
     ret = HAL_I2C_Mem_Read(&hi2c2, EDID_I2C_ADDR, offset, 1, row, EEPROM_BYTES_PER_ROW, 1000);
     if (ret == HAL_OK)
     {
-      Drv_SERIAL_Log("row 0x%02X: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", 
+      Drv_SERIAL_Log("row 0x%02X: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\r\n", 
                       i*EEPROM_BYTES_PER_ROW,
                       row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]);
     }
     else
     {
-      Drv_SERIAL_Log("EDID Read error in row 0x%02X", i*EEPROM_BYTES_PER_ROW);
+      Drv_SERIAL_Log("EDID Read error in row 0x%02X\r\n", i*EEPROM_BYTES_PER_ROW);
       break;
     }
   }
@@ -152,49 +152,47 @@ uint8_t drv_eeprom_write_edid(void)
       {
         if (memcmp(row, &IT6802_HDMI_EDID_TABLE[offset], EEPROM_BYTES_PER_ROW))
         {
-          Drv_SERIAL_Log("EDID Write check error in row 0x%02X", offset);          
+          Drv_SERIAL_Log("EDID Write check error in row 0x%02X\r\n", offset);          
           return HAL_ERROR;
         }
       }
       else
       {
-        Drv_SERIAL_Log("EDID Write read error in row 0x%02X", offset);
+        Drv_SERIAL_Log("EDID Write read error in row 0x%02X\r\n", offset);
         return HAL_ERROR;
       }
     }
     else
     {
-      Drv_SERIAL_Log("EDID Write write error in row 0x%02X", offset);
+      Drv_SERIAL_Log("EDID Write write error in row 0x%02X\r\n", offset);
       return HAL_ERROR;
     }
   }
 
-  Drv_SERIAL_Log("EDID Write successful!");
+  Drv_SERIAL_Log("EDID Write successful!\r\n");
   return HAL_OK;
 }
 
-uint8_t drv_eeprom_read_keystone(uint8_t *d)
+uint8_t drv_eeprom_read_params(e2prom_param_s *d)
 {
   uint8_t row[EEPROM_BYTES_PER_ROW], pages;
   uint8_t i,ret,offset;
 
   memset(row, 0, sizeof(row));
-  pages = (sizeof(e2prome_param_s) <= EEPROM_BYTES_PER_ROW) ? 1 : ((sizeof(e2prome_param_s)/EEPROM_BYTES_PER_ROW)+1);
-  //pages = (256>SEDID_SIZE?EEDID_SIZE:SEDID_SIZE)/EEPROM_BYTES_PER_ROW;
+  pages = (sizeof(e2prom_param_s) <= EEPROM_BYTES_PER_ROW) ? 1 : ((sizeof(e2prom_param_s)/EEPROM_BYTES_PER_ROW)+1);
   for (i=0,offset=0;i<pages;i++,offset+=EEPROM_BYTES_PER_ROW)
   {
     ret = HAL_I2C_Mem_Read(&hi2c2, EDID_I2C_ADDR, offset, 1, row, EEPROM_BYTES_PER_ROW, 1000);
     if (ret == HAL_OK)
     {
-      Drv_SERIAL_Log("row 0x%02X: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", 
-                      i*EEPROM_BYTES_PER_ROW,
-                      row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]);
-      d[0] = row[0];
-      d[1] = row[1];
+      Drv_SERIAL_Log("row 0x%02X: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\r\n", 
+                      i*EEPROM_BYTES_PER_ROW,row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]);
+      memcpy(d, row, sizeof(row));
+      //Drv_SERIAL_Log("keystone read from eeprom:[%x %x] devtype[%x %x]\r\n", d->keystone[0], d->keystone[1], d->devtype[0], d->devtype[1]);
     }
     else
     {
-      Drv_SERIAL_Log("EDID Read error in row 0x%02X", i*EEPROM_BYTES_PER_ROW);
+      Drv_SERIAL_Log("EDID Read error in row 0x%02X\r\n", i*EEPROM_BYTES_PER_ROW);
       break;
     }
   }
@@ -202,53 +200,26 @@ uint8_t drv_eeprom_read_keystone(uint8_t *d)
   return ret;
 }
 
-uint8_t drv_eeprom_write_keystone(uint8_t *d)
+uint8_t drv_eeprom_write_params(e2prom_param_s *d)
 {
-  uint8_t rowWrite[EEPROM_BYTES_PER_ROW], rowRead[EEPROM_BYTES_PER_ROW],pages;
+  uint8_t pages, row[EEPROM_BYTES_PER_ROW];
   uint8_t i,ret,offset;
 
-  memset(rowWrite, 0, sizeof(rowWrite));
-  rowWrite[0] = d[0];
-  rowWrite[1] = d[1];
-  pages = (sizeof(e2prome_param_s)>SEDID_SIZE?EEDID_SIZE:SEDID_SIZE)/EEPROM_BYTES_PER_ROW;
-  //pages = (256>SEDID_SIZE?EEDID_SIZE:SEDID_SIZE)/EEPROM_BYTES_PER_ROW;
+  memcpy(row, d, sizeof(e2prom_param_s));
+  pages = (sizeof(e2prom_param_s) > EEPROM_BYTES_PER_ROW) ? ((sizeof(e2prom_param_s)/EEPROM_BYTES_PER_ROW)+1) : 1;
   for (i=0,offset=0;i<pages;i++,offset+=EEPROM_BYTES_PER_ROW)
   {
-    Drv_SERIAL_Log("keystone write to eeprom:[%x %x]\r\n", rowWrite[0], rowWrite[1]);
+    //Drv_SERIAL_Log("keystone write to eeprom:[%x %x] devtype[%x %x]\r\n", d->keystone[0], d->keystone[1], d->devtype[0], d->devtype[1]);
     ret = HAL_I2C_Mem_Write(&hi2c2, EDID_I2C_ADDR, 
-                            offset, 1, rowWrite, 
-                            EEPROM_BYTES_PER_ROW, 1000);
-    /*
-    if (HAL_OK==ret)
+                            offset, 1, row, EEPROM_BYTES_PER_ROW, 1000);
+    if (HAL_OK!=ret)
     {
-      memset(rowRead, 0, sizeof(rowRead));
-      ret = HAL_I2C_Mem_Read(&hi2c2, EDID_I2C_ADDR, 
-                             offset, 1, rowRead, 
-                             EEPROM_BYTES_PER_ROW, 1000);
-      Drv_SERIAL_Log("keystone read from eeprom:[%x %x]\r\n", rowRead[0], rowRead[1]);
-      if (HAL_OK==ret)
-      {
-        if (memcmp(rowWrite, rowRead, EEPROM_BYTES_PER_ROW))
-        {
-          Drv_SERIAL_Log("EDID Write check error in row 0x%02X", offset);          
-          return HAL_ERROR;
-        }
-      }
-      else
-      {
-        Drv_SERIAL_Log("EDID Write read error in row 0x%02X", offset);
-        return HAL_ERROR;
-      }
-    }
-    else
-    {
-      Drv_SERIAL_Log("EDID Write write error in row 0x%02X", offset);
+      Drv_SERIAL_Log("EDID Write write error in row 0x%02X\r\n", offset);
       return HAL_ERROR;
     }
-    */
   }
 
-  Drv_SERIAL_Log("EDID Write successful!");
+  Drv_SERIAL_Log("EDID Write successful!\r\n");
   return HAL_OK;
 }
 

@@ -62,7 +62,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 extern I2C_HandleTypeDef hi2c2;
-
+extern e2prom_param_s g_e2promParam;
 /* Private function prototypes -----------------------------------------------*/
 
 /**
@@ -183,7 +183,10 @@ int8_t drv_dlpc_set_keystone(uint8_t d)
   data[1] = data[1]+(d?1:-1);
   DLPC_WRITE(0xBB, data, 2);
 
-  drv_eeprom_write_keystone(data);
+  Drv_SERIAL_Log("write keystone:%x %x, devtype:%x %x\r\n", g_e2promParam.keystone[0], g_e2promParam.keystone[1],
+    g_e2promParam.devtype[0],g_e2promParam.devtype[1]);
+  memcpy(g_e2promParam.keystone, &data[0], 2);
+  drv_eeprom_write_params(&g_e2promParam);
 
   return 0;
 }
@@ -192,7 +195,7 @@ int8_t drv_dlpc_init_keystone(uint8_t *d)
 {
   uint8_t data[5];
   
-  DLPC_READ(0x89, data, 5);  
+  DLPC_READ(0x89, data, 5);
   if ((data[0]&0x01)==0x00)
   {
     data[0] = 0x01;
@@ -214,8 +217,8 @@ int8_t drv_dlpc_init_keystone(uint8_t *d)
 }
 
 int8_t drv_dlpc_set_input(uint16_t param)
-{  
-  uint8_t data[8], keystone[2],source, re;
+{
+  uint8_t data[8], source, re;
   uint16_t input_w,input_h,crop_w,crop_h;
 
   if(param>=2)
@@ -274,24 +277,18 @@ int8_t drv_dlpc_set_input(uint16_t param)
   data[1] = 0;
   data[2] = 0;
   data[3] = 0;
-#if 0
-  data[4] = (crop_w&0x00FF);
-  data[5] = (crop_w&0xFF00)>>8;
-  data[6] = (crop_h&0x00FF);
-  data[7] = (crop_h&0xFF00)>>8;
-#else
-#if(isP51)
-  data[4] = (1280&0x00FF);
-  data[5] = (1280&0xFF00)>>8;
-  data[6] = (720&0x00FF);
-  data[7] = (720&0xFF00)>>8;
-#else
-  data[4] = (854&0x00FF);
-  data[5] = (854&0xFF00)>>8;
-  data[6] = (480&0x00FF);
-  data[7] = (480&0xFF00)>>8;
-#endif
-#endif
+  // Set display size for small Light machine
+  if(getLightType() == SMALL_LIGHT) {
+    data[4] = (854&0x00FF);
+    data[5] = (854&0xFF00)>>8;
+    data[6] = (480&0x00FF);
+    data[7] = (480&0xFF00)>>8;
+  } else {
+    data[4] = (1280&0x00FF);
+    data[5] = (1280&0xFF00)>>8;
+    data[6] = (720&0x00FF);
+    data[7] = (720&0xFF00)>>8;
+  }
   re|=DLPC_WRITE(CMD_DISPLAY_SIZE_WRITE, data, 8);
   // Set to External Input
   data[0] = source;
@@ -302,19 +299,23 @@ int8_t drv_dlpc_set_input(uint16_t param)
   // Curtain disabled
   data[0] = 0x00;
   re|=DLPC_WRITE(CMD_IMAGE_CURTAIN_WRITE, data, 1);
-  // Orient
-  data[0] = isP51?4:6;
-  re|=DLPC_WRITE(CMD_IMAGE_ORIENT_WRITE, data, 1);
 
   // Set Current for small Light machine
-  if(!isP51) {
+  if(getLightType() == SMALL_LIGHT) {
+
+    // Orient
+    data[0] = 6;
+    re|=DLPC_WRITE(CMD_IMAGE_ORIENT_WRITE, data, 1);
     drv_dlpc_set_current(1, 0);
+  } else {
+
+    // Orient
+    data[0] = 4;
+    re|=DLPC_WRITE(CMD_IMAGE_ORIENT_WRITE, data, 1);
   }
 
   // Set keystone
-  drv_eeprom_read_keystone(keystone);
-  //Drv_SERIAL_Log("keystone:%x %x\r\n", keystone[0], keystone[1]);
-  drv_dlpc_init_keystone(keystone);
+  drv_dlpc_init_keystone(g_e2promParam.keystone);
 
   return 0;
 }
@@ -395,7 +396,7 @@ int8_t drv_dlpc_switch_test_pattern(void)
 int8_t drv_dlpc_sw(void)
 {
   uint8_t data[6],param = 0;
-  
+
   if (HAL_OK == DLPC_READ(0xD1, data, 4))
     Drv_SERIAL_Log("System Status Byte1 0x%02X, Byte2 0x%02X, Byte3 0x%02X, Byte4 0x%02X", data[0],data[1],data[2],data[3]);
   
@@ -416,6 +417,9 @@ int8_t drv_dlpc_sw(void)
 
   if (HAL_OK == DLPC_READ(0xD5, data, 4))
     Drv_SERIAL_Log("0xD5:0x%x 0x%x 0x%x 0x%x \r\n", data[0], data[1], data[2], data[3]);
+
+  memcpy(g_e2promParam.devtype, &data[2], 2);
+  drv_eeprom_write_params(&g_e2promParam);
 
   if (HAL_OK == DLPC_READ(0x15, data, 1))
     Drv_SERIAL_Log("0x15:0x%x\r\n", data[0]);
