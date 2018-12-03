@@ -86,7 +86,8 @@ void drv_motor_move_forward(uint8_t steps)
 {
   uint8_t i;
   
-  for (i=0,step=0;i<steps;i++)
+  //for (i=0,step=0;i<steps;i++)
+  for (i=0;i<1;i++)
   {
     drv_motor_move_execute(motor_steps[step]);
     step = (step + 1) % MOVE_CYCLE;
@@ -98,7 +99,8 @@ void drv_motor_move_reverse(uint8_t steps)
 {  
   uint8_t i;
   
-  for (i=0,step=0;i<steps;i++)
+  //for (i=0,step=0;i<steps;i++)
+  for (i=0;i<1;i++)
   {
     drv_motor_move_execute(motor_steps[step]);
     step = (step + MOVE_CYCLE - 1) % MOVE_CYCLE;

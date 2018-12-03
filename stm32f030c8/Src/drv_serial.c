@@ -281,10 +281,10 @@ static int8_t Drv_MOTOR_CMD_Handler(uint8_t code, uint16_t param)
   switch (code)
   {
   case CMD_OP_MOTOR_SET_FORWARD:
-    drv_motor_move_forward(2);
+    drv_motor_move_forward(4);
     break;
   case CMD_OP_MOTOR_SET_BACKWARD:
-    drv_motor_move_reverse(2);
+    drv_motor_move_reverse(4);
     break;
   }
   
