@@ -115,7 +115,7 @@ void Drv_SERIAL_Proc(void)
     //        single_cmd[0],single_cmd[1],single_cmd[2],single_cmd[3]);
     (void)Drv_CMD_Handler(single_cmd);
   }
-  
+#if 0
   /* 3. read the report buffer... */
   if (HAL_OK == Drv_SERIAL_Read_Rpt(single_cmd) &&
         single_cmd[2] != 0x01 && 
@@ -126,6 +126,7 @@ void Drv_SERIAL_Proc(void)
     //    single_cmd[0],single_cmd[1],single_cmd[2],single_cmd[3]);
     (void)Drv_SERIAL_Write(single_cmd, HAL_MAX_DELAY);
   }
+#endif
 }
 
 void Drv_SERIAL_Log(const char *format, ...)
@@ -207,9 +208,9 @@ static uint8_t Drv_SERIAL_Read_Rpt(uint8_t * pData)
   if (rpt_cmd.rd_id != rpt_cmd.wr_id)
   {
     memcpy(pData, rpt_cmd.multi_cmd[rpt_cmd.rd_id], CMD_LEN_MAX-1);
-    rpt_cmd.rd_id = ( rpt_cmd.rd_id + 1 ) % MULTI_CMD_MAX;    
+    rpt_cmd.rd_id = ( rpt_cmd.rd_id + 1 ) % MULTI_CMD_MAX;
     return (uint8_t)HAL_OK;
-  }  
+  }
   return (uint8_t)HAL_ERROR;
 }
 
@@ -460,9 +461,15 @@ void handle_power_key(void)
     HAL_Delay(500);
     MX_I2C2_Init();
     drv_dlpc_set_input(2);
+    // pull up the HPB signal
+    drv_hdmi_set_hpd(1);
+    drv_hdmi_set_output(1);
   }
   else
   {
+    // pull down the HPB signal
+    drv_hdmi_set_hpd(0);
+    drv_hdmi_set_output(0);
     MX_I2C_DeInit();
     drv_fan_off(5000);
   }
@@ -543,10 +550,10 @@ static void handle_func_MIkeys(uint16_t key)
     case REMOTE_MI_BACK:
     case REMOTE_MI_PLUS:
     case REMOTE_MI_MINUS:
-#if 0
+#if 1
       memset(single_cmd, 0, sizeof(single_cmd));
-      single_cmd[0] = CMD_HEADER_REQ;
-      single_cmd[1] = MSG_TYPE_IR;
+      single_cmd[0] = CMD_HEADER_RPT;
+      single_cmd[1] = SET_CODE(CMD_CODE_MASK_IR, CMD_OP_IR_CODE);
       single_cmd[2] = 0xff&key;
       single_cmd[3] = 0xff&(key>>8);
       Drv_SERIAL_Write(single_cmd, HAL_MAX_DELAY);

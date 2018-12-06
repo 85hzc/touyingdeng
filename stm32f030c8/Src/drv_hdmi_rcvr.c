@@ -260,8 +260,8 @@ static uint8_t drv_hdmi_init_edid(void);
 static uint8_t drv_hdmi_set_reg(uint8_t reg, uint8_t mask, uint8_t value );
 static uint8_t drv_hdmi_get_reg(uint8_t reg, uint8_t mask, uint8_t *value );
 static void drv_hdmi_interrupt_handler(void);
-static void drv_hdmi_set_hpd(uint8_t value);
-//static void drv_hdmi_set_output(uint8_t enable);
+void drv_hdmi_set_hpd(uint8_t value);
+void drv_hdmi_set_output(uint8_t enable);
 
 
 /**
@@ -301,14 +301,14 @@ __inline static void change_bank(uint8_t bank)
   drv_hdmi_set_reg(0x0F, 0x03, bank&0x03);
 }
 
-static void drv_hdmi_set_hpd(uint8_t value)
+void drv_hdmi_set_hpd(uint8_t value)
 {
   change_bank(1);
   drv_hdmi_set_reg(0xb0,0x03,value?0x03:0x00);
   change_bank(0);
 }
-#if 0
-static void drv_hdmi_set_output(uint8_t enable)
+#if 1
+void drv_hdmi_set_output(uint8_t enable)
 {  
   if (enable)
   {
@@ -318,11 +318,13 @@ static void drv_hdmi_set_output(uint8_t enable)
 		HAL_Delay(10);
     
     drv_hdmi_set_reg(0x53,(0x01|0x0E),0x00);
+    drv_hdmi_set_reg(0x52,(0x01|0x0E),0x00);
   }
   else
   {    
     Drv_SERIAL_Log("drv_hdmi_set_output DISABLE");
     drv_hdmi_set_reg(0x53,(0x01|0x0E),(0x01|0x0E));
+    drv_hdmi_set_reg(0x52,(0x10|0x0F),(0x10|0x0F));
   }
 }
 #endif
